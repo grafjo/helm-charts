@@ -125,3 +125,24 @@ serviceMonitor:
   enabled: true
   port: http-management
 ```
+
+### RBAC
+
+Minimal rbac support is included:
+
+Bind ServiceAccount to a existing ClusterRole:
+
+```yaml
+rbac:
+  create: true
+  existingRole: name-of-existing-cluster-role
+```
+
+Bind ServiceAccount to a existing Role:
+
+```yaml
+rbac:
+  create: true
+  namespaced: true
+  existingRole: name-of-existing-role
+```
