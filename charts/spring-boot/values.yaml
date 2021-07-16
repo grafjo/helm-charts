@@ -22,6 +22,12 @@ serviceAccount:
   # If not set and create is true, a name is generated using the fullname template
   name: ""
 
+rbac:
+  create: false
+  # clusterRoleBinding vs RoleBinding
+  namespaced: false
+  existingRole: name-of-some-(cluster)role
+
 podAnnotations: {}
 
 # Liveness probe configuration

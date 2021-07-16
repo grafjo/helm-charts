@@ -1,0 +1,20 @@
+{{- if and .Values.rbac.create (not .Values.rbac.namespaced) }}
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ template "spring-boot.fullname" . }}-clusterrolebinding
+  labels:
+    {{- include "spring-boot.labels" . | nindent 4 }}
+{{- with .Values.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ template "spring-boot.serviceAccountName" . }}
+    namespace: {{ template "spring-boot.namespace" . }}
+roleRef:
+  kind: ClusterRole
+  name: {{ .Values.rbac.existingRole }}
+  apiGroup: rbac.authorization.k8s.io
+{{- end -}}
