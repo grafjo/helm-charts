@@ -24,15 +24,15 @@ $ helm chart values grafjo/spring-boot
 
 ### Image
 
-The default image is [PetClinic](https://github.com/spring-petclinic/spring-framework-petclinic).
+The default image is [grafjo/whoami](https://github.com/grafjo/whoami).
 
 Please update to your needs via a custom values-file:
 
 ```yaml
 image:
-  repository: springcommunity/spring-framework-petclinic
+  repository: grafjo/whoami
   pullPolicy: IfNotPresent
-  tag: "latest"
+  tag: "0.5.0"
 ```
 
 
