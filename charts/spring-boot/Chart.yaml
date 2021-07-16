@@ -5,5 +5,5 @@ type: application
 version: 1.0.1
 appVersion: 1.0.0
 maintainers:
-  - name: Johannes Graf
+  - name: grafjo
     email: graf@synyx.de
