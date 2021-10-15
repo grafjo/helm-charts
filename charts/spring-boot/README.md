@@ -43,6 +43,7 @@ It is used for the following values:
 
 * `extraEnv`
 * `extraEnvFrom`
+* `extraInitContainers`
 * `affinity`
 
 It is important that these values be configured as strings. Otherwise, installation will fail.
@@ -146,3 +147,19 @@ rbac:
   namespaced: true
   existingRole: name-of-existing-role
 ```
+
+### Extra Init Containers
+
+```
+extraInitContainers: |
+  - name: my-init-container
+    image: busybox:latest
+    imagePullPolicy: IfNotPresent
+    command:
+      - sh
+    args:
+      - -c
+      - |
+        echo "Hello World from init container ..."
+```
+

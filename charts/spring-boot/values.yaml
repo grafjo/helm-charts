@@ -113,6 +113,10 @@ extraEnv: |
   - name: SPRING_PROFILES_ACTIVE
     value: default
 
+
+# your init containers, e. g. for database preperation
+extraInitContainers: ""
+
 # customize the spring boot actuator management server settings
 customizedManagementServer:
   enabled: false
