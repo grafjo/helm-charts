@@ -1,5 +1,7 @@
 # Spring Boot
 
+_Attention_: Requires kubernetes >= 1.19
+
 ## Introduction
 
 This chart bootstraps a Spring Boot deployment on a [Kubernetes](https://kubernetes.io) cluster
