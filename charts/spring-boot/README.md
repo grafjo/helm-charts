@@ -111,6 +111,14 @@ readinessProbe: |
   initialDelaySeconds: 60
   periodSeconds: 10
   failureThreshold: 10
+
+startupProbe: |
+  httpGet:
+    path: /actuator/health
+    port: http-management
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  failureThreshold: 30
 ```
 
 
