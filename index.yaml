@@ -3,6 +3,19 @@ entries:
   spring-boot:
   - apiVersion: v2
     appVersion: 1.3.0
+    created: "2022-06-05T12:38:13.17189211Z"
+    description: helm chart to deploy a spring boot application
+    digest: 9d3a1138768c5c6db981330e25f9b7afd06a63bf93c24c763284d0e628281649
+    maintainers:
+    - email: graf@synyx.de
+      name: grafjo
+    name: spring-boot
+    type: application
+    urls:
+    - https://github.com/grafjo/helm-charts/releases/download/spring-boot-1.7.0/spring-boot-1.7.0.tgz
+    version: 1.7.0
+  - apiVersion: v2
+    appVersion: 1.3.0
     created: "2022-05-08T12:54:34.585983971Z"
     description: helm chart to deploy a spring boot application
     digest: e5faa2c28a9f1c140b2ec8dc2f3004fd78bdfc5814052fb9c1883ce04f3b3d28
@@ -92,4 +105,4 @@ entries:
     urls:
     - https://github.com/grafjo/helm-charts/releases/download/spring-boot-1.0.1/spring-boot-1.0.1.tgz
     version: 1.0.1
-generated: "2022-05-08T12:54:34.586014488Z"
+generated: "2022-06-05T12:38:13.17192791Z"
