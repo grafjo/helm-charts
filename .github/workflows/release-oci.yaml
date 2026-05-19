@@ -29,10 +29,15 @@ jobs:
         with:
           version: v4.2.0
 
+      # docker/login-action writes credentials to ~/.docker/config.json,
+      # which both helm (OCI client falls back to Docker config) and cosign
+      # read from. One login, one credential store for the whole job.
       - name: Log in to GHCR
-        run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" \
-            | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Package and push
         id: publish
