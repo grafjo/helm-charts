@@ -1,0 +1,74 @@
+name: Publish spring-boot chart to GHCR
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'charts/spring-boot/**'
+      - '.github/workflows/release-oci.yaml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-oci
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+      id-token: write   # cosign keyless
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: Azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5.0.0
+        with:
+          version: v4.2.0
+
+      - name: Log in to GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" \
+            | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Package and push
+        id: publish
+        run: |
+          set -euo pipefail
+          owner=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          registry="oci://ghcr.io/${owner}/charts"
+          version=$(yq -r '.version' charts/spring-boot/Chart.yaml)
+
+          if helm show chart "${registry}/spring-boot" --version "${version}" >/dev/null 2>&1; then
+            echo "spring-boot@${version} already published — skipping"
+            exit 0
+          fi
+
+          helm package charts/spring-boot -d .out
+          push_log=$(mktemp)
+          helm push ".out/spring-boot-${version}.tgz" "${registry}" 2>&1 | tee "${push_log}"
+
+          digest=$(grep -Eo 'sha256:[0-9a-f]{64}' "${push_log}" | head -1)
+          [ -n "${digest}" ] || { echo "could not parse digest"; exit 1; }
+          echo "oci_digest_to_sign=ghcr.io/${owner}/charts/spring-boot@${digest}" >> "$GITHUB_OUTPUT"
+
+      - name: Install cosign
+        if: steps.publish.outputs.oci_digest_to_sign != ''
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        with:
+          cosign-release: 'v3.0.6'
+
+      - name: Sign and verify
+        if: steps.publish.outputs.oci_digest_to_sign != ''
+        env:
+          OCI_DIGEST_TO_SIGN: ${{ steps.publish.outputs.oci_digest_to_sign }}
+        run: |
+          set -euo pipefail
+          cosign sign --yes "${OCI_DIGEST_TO_SIGN}"
+          cosign verify "${OCI_DIGEST_TO_SIGN}" \
+            --certificate-identity-regexp "https://github.com/${{ github.repository }}/.github/workflows/release-oci.yaml@.+" \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            > /dev/null
