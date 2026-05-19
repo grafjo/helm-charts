@@ -1,0 +1,142 @@
+suite: env list ordering and chart-managed prefix
+templates:
+  - deployment.yaml
+release:
+  name: t
+  namespace: default
+set:
+  skipHelmVersionCheck: true
+  image:
+    repository: example/spring-boot
+tests:
+  - it: chart-managed prefix always emits SERVER_PORT, SERVER_SHUTDOWN, SPRING_LIFECYCLE_TIMEOUT_PER_SHUTDOWN_PHASE
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[0].name
+          value: SERVER_PORT
+      - equal:
+          path: spec.template.spec.containers[0].env[1].name
+          value: SERVER_SHUTDOWN
+      - equal:
+          path: spec.template.spec.containers[0].env[2].name
+          value: SPRING_LIFECYCLE_TIMEOUT_PER_SHUTDOWN_PHASE
+      - lengthEqual:
+          path: spec.template.spec.containers[0].env
+          count: 3
+
+  - it: user env entries follow the chart-managed prefix in alphabetical order
+    set:
+      env:
+        Z_VAR: z
+        A_VAR: a
+        M_VAR: m
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[0].name
+          value: SERVER_PORT
+      - equal:
+          path: spec.template.spec.containers[0].env[1].name
+          value: SERVER_SHUTDOWN
+      - equal:
+          path: spec.template.spec.containers[0].env[2].name
+          value: SPRING_LIFECYCLE_TIMEOUT_PER_SHUTDOWN_PHASE
+      - equal:
+          path: spec.template.spec.containers[0].env[3].name
+          value: A_VAR
+      - equal:
+          path: spec.template.spec.containers[0].env[4].name
+          value: M_VAR
+      - equal:
+          path: spec.template.spec.containers[0].env[5].name
+          value: Z_VAR
+
+  - it: MANAGEMENT_SERVER_* follow the shutdown prefix when enabled
+    set:
+      customizedManagementServer:
+        enabled: true
+      env:
+        AAA: x
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[0].name
+          value: SERVER_PORT
+      - equal:
+          path: spec.template.spec.containers[0].env[1].name
+          value: SERVER_SHUTDOWN
+      - equal:
+          path: spec.template.spec.containers[0].env[2].name
+          value: SPRING_LIFECYCLE_TIMEOUT_PER_SHUTDOWN_PHASE
+      - equal:
+          path: spec.template.spec.containers[0].env[3].name
+          value: MANAGEMENT_SERVER_PORT
+      - equal:
+          path: spec.template.spec.containers[0].env[4].name
+          value: MANAGEMENT_SERVER_ADDRESS
+      - equal:
+          path: spec.template.spec.containers[0].env[5].name
+          value: AAA
+
+  - it: user-supplied MANAGEMENT_SERVER_PORT wins over auto-injection
+    set:
+      customizedManagementServer:
+        enabled: true
+      env:
+        MANAGEMENT_SERVER_PORT: 9099
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MANAGEMENT_SERVER_PORT
+            value: "9099"
+      # Only one MANAGEMENT_SERVER_PORT entry — the chart-managed one is suppressed.
+      # Chart-managed prefix: SERVER_PORT, SERVER_SHUTDOWN, SPRING_LIFECYCLE, MANAGEMENT_SERVER_ADDRESS = 4
+      # + user MANAGEMENT_SERVER_PORT = 5 total
+      - lengthEqual:
+          path: spec.template.spec.containers[0].env
+          count: 5
+
+  - it: user-supplied MANAGEMENT_SERVER_ADDRESS wins over auto-injection
+    set:
+      customizedManagementServer:
+        enabled: true
+      env:
+        MANAGEMENT_SERVER_ADDRESS: 127.0.0.1
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MANAGEMENT_SERVER_ADDRESS
+            value: "127.0.0.1"
+      - lengthEqual:
+          path: spec.template.spec.containers[0].env
+          count: 5
+
+  - it: mixed scalar and typed entries render correctly side by side
+    set:
+      env:
+        PLAIN: hello
+        SECRET:
+          secretKeyRef:
+            name: s
+            key: k
+        DOWNWARD:
+          fieldRef:
+            fieldPath: status.podIP
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PLAIN
+            value: "hello"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SECRET
+            valueFrom:
+              secretKeyRef: { name: s, key: k }
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DOWNWARD
+            valueFrom:
+              fieldRef: { fieldPath: status.podIP }

@@ -1,0 +1,46 @@
+suite: env configMapKeyRef notation
+templates:
+  - deployment.yaml
+release:
+  name: t
+  namespace: default
+set:
+  skipHelmVersionCheck: true
+  image:
+    repository: example/spring-boot
+tests:
+  - it: renders configMapKeyRef with valueFrom
+    set:
+      env:
+        FEATURE_FLAG:
+          configMapKeyRef:
+            name: feature-flags
+            key: enabled
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FEATURE_FLAG
+            valueFrom:
+              configMapKeyRef:
+                name: feature-flags
+                key: enabled
+
+  - it: passes optional flag through
+    set:
+      env:
+        FEATURE_FLAG:
+          configMapKeyRef:
+            name: feature-flags
+            key: enabled
+            optional: false
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FEATURE_FLAG
+            valueFrom:
+              configMapKeyRef:
+                name: feature-flags
+                key: enabled
+                optional: false

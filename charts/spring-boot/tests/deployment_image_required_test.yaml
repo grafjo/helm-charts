@@ -1,0 +1,23 @@
+suite: image.repository is required — fail-loud assertion
+templates:
+  - deployment.yaml
+release:
+  name: t
+  namespace: default
+set:
+  skipHelmVersionCheck: true
+tests:
+  - it: fails the schema check when image.repository is empty
+    asserts:
+      - failedTemplate:
+          errorPattern: "image/repository.*minLength"
+
+  - it: renders the image reference when image.repository is set
+    set:
+      image:
+        repository: example/spring-boot
+        tag: "1.0.0"
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: example/spring-boot:1.0.0

@@ -1,0 +1,82 @@
+suite: env scalar shorthand notations
+templates:
+  - deployment.yaml
+release:
+  name: t
+  namespace: default
+chart:
+  version: 2.0.0
+capabilities:
+  majorVersion: "1"
+  minorVersion: "33"
+set:
+  skipHelmVersionCheck: true
+  image:
+    repository: example/spring-boot
+tests:
+  - it: scalar string is emitted as quoted value
+    set:
+      env:
+        FOO: bar
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FOO
+            value: "bar"
+
+  - it: scalar integer is force-stringified
+    set:
+      env:
+        SERVER_PORT: 8080
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SERVER_PORT
+            value: "8080"
+
+  - it: scalar boolean is force-stringified
+    set:
+      env:
+        FEATURE_ON: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FEATURE_ON
+            value: "true"
+
+  - it: scalar float is force-stringified
+    set:
+      env:
+        RATIO: 1.5
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: RATIO
+            value: "1.5"
+
+  - it: explicit value form is equivalent to scalar shorthand
+    set:
+      env:
+        FOO:
+          value: bar
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FOO
+            value: "bar"
+
+  - it: tpl is evaluated inside scalar values
+    set:
+      env:
+        FULLNAME_URL: "http://{{ include \"spring-boot.fullname\" . }}"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FULLNAME_URL
+            value: "http://t-spring-boot"

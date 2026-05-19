@@ -1,27 +1,15 @@
 # grafjo Helm Charts
 
-This repo collects a set of [Helm](https://helm.sh) charts curated by grafjo.
+[![Release Charts](https://github.com/grafjo/helm-charts/actions/workflows/release-oci.yaml/badge.svg)](https://github.com/grafjo/helm-charts/actions/workflows/release-oci.yaml)
 
+A collection of [Helm](https://helm.sh) charts for [Kubernetes](https://kubernetes.io), curated by grafjo and published as OCI artifacts to GitHub Container Registry.
 
-## Usage
+Please see each chart's `README.md` for detailed information & instructions:
 
-[Helm](https://helm.sh) must be installed to use the charts.  Please refer to
-Helm's [documentation](https://helm.sh/docs) to get started.
+* [spring-boot](charts/spring-boot/README.md)
 
-Once Helm has been set up correctly, add the repo as follows:
+## Sources
 
-```
-  helm repo add grafjo https://grafjo.github.io/helm-charts
-```
-
-If you had already added this repo earlier, run `helm repo update` to retrieve
-the latest versions of the packages. You can then run `helm search repo grafjo`
-to see the charts.
-
-To install the <chart-name> chart:
-
-    helm install my-<chart-name> grafjo/<chart-name>
-
-To uninstall the chart:
-
-    helm delete my-<chart-name>
+* [Helm chart sources](https://github.com/grafjo/helm-charts)
+* [OCI registry](https://github.com/grafjo?tab=packages&repo_name=helm-charts)
+* [Helm releases](https://github.com/grafjo/helm-charts/releases)

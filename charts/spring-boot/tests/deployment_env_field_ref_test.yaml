@@ -1,0 +1,59 @@
+suite: env fieldRef and resourceFieldRef notations
+templates:
+  - deployment.yaml
+release:
+  name: t
+  namespace: default
+set:
+  skipHelmVersionCheck: true
+  image:
+    repository: example/spring-boot
+tests:
+  - it: fieldRef for status.podIP
+    set:
+      env:
+        POD_IP:
+          fieldRef:
+            fieldPath: status.podIP
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+
+  - it: fieldRef for metadata.name with apiVersion
+    set:
+      env:
+        POD_NAME:
+          fieldRef:
+            fieldPath: metadata.name
+            apiVersion: v1
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+                apiVersion: v1
+
+  - it: resourceFieldRef for limits.memory
+    set:
+      env:
+        MEM_LIMIT:
+          resourceFieldRef:
+            containerName: spring-boot
+            resource: limits.memory
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MEM_LIMIT
+            valueFrom:
+              resourceFieldRef:
+                containerName: spring-boot
+                resource: limits.memory

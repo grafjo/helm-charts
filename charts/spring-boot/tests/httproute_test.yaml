@@ -1,0 +1,50 @@
+suite: HTTPRoute (Gateway API)
+templates:
+  - httproute.yaml
+release:
+  name: t
+  namespace: default
+set:
+  skipHelmVersionCheck: true
+  image:
+    repository: example/spring-boot
+tests:
+  - it: not rendered when httpRoute disabled (default)
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: rendered with parentRefs, hostnames, and default backendRef when enabled
+    set:
+      httpRoute:
+        enabled: true
+        parentRefs:
+          - name: public-gateway
+            namespace: gateway-system
+            sectionName: https
+        hostnames:
+          - app.example.com
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: HTTPRoute
+      - equal:
+          path: apiVersion
+          value: gateway.networking.k8s.io/v1
+      - equal:
+          path: spec.parentRefs
+          value:
+            - name: public-gateway
+              namespace: gateway-system
+              sectionName: https
+      - equal:
+          path: spec.hostnames
+          value:
+            - app.example.com
+      - equal:
+          path: spec.rules[0].backendRefs
+          value:
+            - name: t-spring-boot
+              port: 80
+              weight: 1

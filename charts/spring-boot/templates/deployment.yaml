@@ -1,3 +1,4 @@
+{{- include "spring-boot.assertHelm4" . -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -5,44 +6,51 @@ metadata:
   labels:
     {{- include "spring-boot.labels" . | nindent 4 }}
 spec:
-{{- if not .Values.autoscaling.enabled }}
+  {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
-{{- end }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "spring-boot.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-    {{- with .Values.podAnnotations }}
+      {{- with .Values.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
-    {{- end }}
+      {{- end }}
       labels:
-        {{- include "spring-boot.selectorLabels" . | nindent 8 }}
+        {{- include "spring-boot.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "spring-boot.serviceAccountName" . }}
-      automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+      {{- with .Values.terminationGracePeriodSeconds }}
+      terminationGracePeriodSeconds: {{ . }}
+      {{- end }}
+      {{- with .Values.podSecurityContext }}
       securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
-      {{- if .Values.extraInitContainers }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.extraInitContainers }}
       initContainers:
-        {{- with .Values.extraInitContainers }}
         {{- tpl . $ | nindent 8 }}
-        {{- end }}
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}
+          {{- with .Values.securityContext }}
           securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: http
-              containerPort: 8080
+              containerPort: {{ .Values.image.containerPort }}
               protocol: TCP
             {{- if .Values.customizedManagementServer.enabled }}
             - name: http-management
@@ -51,32 +59,37 @@ spec:
             {{- end }}
           {{- with .Values.livenessProbe }}
           livenessProbe:
-            {{- tpl . $ | nindent 12 }}
+            {{- include "spring-boot.renderProbe" (dict "probe" . "ctx" $) | nindent 12 }}
           {{- end }}
           {{- with .Values.readinessProbe }}
           readinessProbe:
-            {{- tpl . $ | nindent 12 }}
+            {{- include "spring-boot.renderProbe" (dict "probe" . "ctx" $) | nindent 12 }}
           {{- end }}
           {{- with .Values.startupProbe }}
           startupProbe:
-            {{- tpl . $ | nindent 12 }}
+            {{- include "spring-boot.renderProbe" (dict "probe" . "ctx" $) | nindent 12 }}
           {{- end }}
+          {{- with .Values.resources }}
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.lifecycle }}
+          lifecycle:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- $envBlock := include "spring-boot.env" . | trim }}
+          {{- if $envBlock }}
           env:
-            {{- if .Values.customizedManagementServer.enabled }}
-            - name: MANAGEMENT_SERVER_PORT
-              value: {{ .Values.customizedManagementServer.port | quote }}
-            - name: MANAGEMENT_SERVER_ADDRESS
-              value: {{ .Values.customizedManagementServer.address }}
-            {{- end }}
-            {{- with .Values.extraEnv }}
-            {{- tpl . $ | nindent 12 }}
-            {{- end }}
-          envFrom:
-            {{- with .Values.extraEnvFrom }}
-              {{- tpl . $ | nindent 12 }}
-              {{- end }}
+            {{- $envBlock | nindent 12 }}
+          {{- end }}
+          {{- with .Values.volumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.volumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

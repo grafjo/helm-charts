@@ -1,0 +1,68 @@
+suite: HorizontalPodAutoscaler
+templates:
+  - hpa.yaml
+release:
+  name: t
+  namespace: default
+set:
+  skipHelmVersionCheck: true
+  image:
+    repository: example/spring-boot
+tests:
+  - it: not rendered when autoscaling disabled (default)
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: rendered with CPU metric when autoscaling enabled
+    set:
+      autoscaling:
+        enabled: true
+        minReplicas: 2
+        maxReplicas: 10
+        targetCPUUtilizationPercentage: 80
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: HorizontalPodAutoscaler
+      - equal:
+          path: apiVersion
+          value: autoscaling/v2
+      - equal:
+          path: spec.scaleTargetRef
+          value:
+            apiVersion: apps/v1
+            kind: Deployment
+            name: t-spring-boot
+      - equal:
+          path: spec.minReplicas
+          value: 2
+      - equal:
+          path: spec.maxReplicas
+          value: 10
+      - contains:
+          path: spec.metrics
+          content:
+            type: Resource
+            resource:
+              name: cpu
+              target:
+                type: Utilization
+                averageUtilization: 80
+
+  - it: includes memory metric when targetMemoryUtilizationPercentage set
+    set:
+      autoscaling:
+        enabled: true
+        targetMemoryUtilizationPercentage: 75
+    asserts:
+      - contains:
+          path: spec.metrics
+          content:
+            type: Resource
+            resource:
+              name: memory
+              target:
+                type: Utilization
+                averageUtilization: 75
