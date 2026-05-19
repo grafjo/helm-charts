@@ -1,0 +1,68 @@
+suite: Service
+templates:
+  - service.yaml
+release:
+  name: t
+  namespace: default
+set:
+  skipHelmVersionCheck: true
+  image:
+    repository: example/spring-boot
+tests:
+  - it: renders a ClusterIP Service by default
+    asserts:
+      - isKind:
+          of: Service
+      - equal:
+          path: spec.type
+          value: ClusterIP
+      - equal:
+          path: metadata.name
+          value: t-spring-boot
+      - contains:
+          path: spec.ports
+          content:
+            port: 80
+            targetPort: http
+            protocol: TCP
+            name: http
+      - lengthEqual:
+          path: spec.ports
+          count: 1
+
+  - it: exposes a second port when customizedManagementServer is enabled
+    set:
+      customizedManagementServer:
+        enabled: true
+    asserts:
+      - lengthEqual:
+          path: spec.ports
+          count: 2
+      - contains:
+          path: spec.ports
+          content:
+            port: 8090
+            targetPort: http-management
+            protocol: TCP
+            name: http-management
+
+  - it: honors service.type and service.port overrides
+    set:
+      service:
+        type: LoadBalancer
+        port: 8443
+    asserts:
+      - equal:
+          path: spec.type
+          value: LoadBalancer
+      - equal:
+          path: spec.ports[0].port
+          value: 8443
+
+  - it: selector uses chart selectorLabels
+    asserts:
+      - equal:
+          path: spec.selector
+          value:
+            app.kubernetes.io/name: spring-boot
+            app.kubernetes.io/instance: t

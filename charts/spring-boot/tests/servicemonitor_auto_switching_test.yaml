@@ -1,0 +1,47 @@
+suite: ServiceMonitor port follows customizedManagementServer
+templates:
+  - servicemonitor.yaml
+release:
+  name: t
+  namespace: default
+set:
+  skipHelmVersionCheck: true
+  image:
+    repository: example/spring-boot
+tests:
+  - it: not rendered when serviceMonitor disabled
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: port defaults to http when customizedManagementServer disabled
+    set:
+      serviceMonitor:
+        enabled: true
+    asserts:
+      - equal:
+          path: spec.endpoints[0].port
+          value: http
+
+  - it: port defaults to http-management when customizedManagementServer enabled
+    set:
+      serviceMonitor:
+        enabled: true
+      customizedManagementServer:
+        enabled: true
+    asserts:
+      - equal:
+          path: spec.endpoints[0].port
+          value: http-management
+
+  - it: explicit serviceMonitor.port wins over auto-derivation
+    set:
+      serviceMonitor:
+        enabled: true
+        port: metrics
+      customizedManagementServer:
+        enabled: true
+    asserts:
+      - equal:
+          path: spec.endpoints[0].port
+          value: metrics

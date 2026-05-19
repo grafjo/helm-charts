@@ -5,11 +5,11 @@ metadata:
   labels:
     {{- include "spring-boot.labels" . | nindent 4 }}
   annotations:
-    "helm.sh/hook": test-success
+    "helm.sh/hook": test
 spec:
   containers:
     - name: wget
-      image: busybox
+      image: busybox:1.36
       command: ['wget']
       args: ['{{ include "spring-boot.fullname" . }}:{{ .Values.service.port }}']
   restartPolicy: Never

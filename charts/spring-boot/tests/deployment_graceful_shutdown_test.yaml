@@ -1,0 +1,101 @@
+suite: graceful shutdown — pod termination, preStop, Spring Boot env
+templates:
+  - deployment.yaml
+release:
+  name: t
+  namespace: default
+set:
+  skipHelmVersionCheck: true
+  image:
+    repository: example/spring-boot
+tests:
+  - it: defaults — terminationGracePeriodSeconds 60, preStop sleep 10s, graceful env injected
+    asserts:
+      - equal:
+          path: spec.template.spec.terminationGracePeriodSeconds
+          value: 60
+      - equal:
+          path: spec.template.spec.containers[0].lifecycle
+          value:
+            preStop:
+              sleep:
+                seconds: 10
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SERVER_SHUTDOWN
+            value: "graceful"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SPRING_LIFECYCLE_TIMEOUT_PER_SHUTDOWN_PHASE
+            value: "30s"
+
+  - it: terminationGracePeriodSeconds override flows through
+    set:
+      terminationGracePeriodSeconds: 120
+    asserts:
+      - equal:
+          path: spec.template.spec.terminationGracePeriodSeconds
+          value: 120
+
+  - it: lifecycle null removes the lifecycle field entirely
+    set:
+      lifecycle: null
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[0].lifecycle
+
+  - it: custom preStop hook replaces the default sleep when sleep is nulled
+    set:
+      lifecycle:
+        preStop:
+          sleep: null
+          httpGet:
+            path: /actuator/shutdown
+            port: http-management
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].lifecycle.preStop.httpGet.path
+          value: /actuator/shutdown
+      - notExists:
+          path: spec.template.spec.containers[0].lifecycle.preStop.sleep
+
+  - it: gracefulShutdown.mode + timeout flow into env
+    set:
+      gracefulShutdown:
+        mode: immediate
+        timeout: 5s
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SERVER_SHUTDOWN
+            value: "immediate"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SPRING_LIFECYCLE_TIMEOUT_PER_SHUTDOWN_PHASE
+            value: "5s"
+
+  - it: user-supplied SERVER_SHUTDOWN in env wins over auto-injection
+    set:
+      env:
+        SERVER_SHUTDOWN: immediate
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SERVER_SHUTDOWN
+            value: "immediate"
+
+  - it: user-supplied SPRING_LIFECYCLE_TIMEOUT_PER_SHUTDOWN_PHASE wins over auto-injection
+    set:
+      env:
+        SPRING_LIFECYCLE_TIMEOUT_PER_SHUTDOWN_PHASE: 45s
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SPRING_LIFECYCLE_TIMEOUT_PER_SHUTDOWN_PHASE
+            value: "45s"

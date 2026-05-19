@@ -1,0 +1,60 @@
+suite: container port and SERVER_PORT auto-injection
+templates:
+  - deployment.yaml
+release:
+  name: t
+  namespace: default
+set:
+  skipHelmVersionCheck: true
+  image:
+    repository: example/spring-boot
+tests:
+  - it: defaults to containerPort 8080 with matching SERVER_PORT
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].ports[0]
+          value:
+            name: http
+            containerPort: 8080
+            protocol: TCP
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SERVER_PORT
+            value: "8080"
+
+  - it: image.containerPort override propagates to container port and SERVER_PORT
+    set:
+      image:
+        containerPort: 9000
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].ports[0].containerPort
+          value: 9000
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SERVER_PORT
+            value: "9000"
+
+  - it: user-supplied SERVER_PORT in env wins over auto-injection
+    set:
+      image:
+        containerPort: 8080
+      env:
+        SERVER_PORT: 9090
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].ports[0].containerPort
+          value: 8080
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SERVER_PORT
+            value: "9090"
+      # User-supplied SERVER_PORT replaces auto-inject — only one SERVER_PORT
+      # entry exists. SERVER_SHUTDOWN + SPRING_LIFECYCLE_TIMEOUT auto-inject
+      # alongside it, so total chart-managed env stays at 3.
+      - lengthEqual:
+          path: spec.template.spec.containers[0].env
+          count: 3

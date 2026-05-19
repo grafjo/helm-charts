@@ -1,0 +1,68 @@
+suite: env entry validation — negative cases
+templates:
+  - deployment.yaml
+release:
+  name: t
+  namespace: default
+set:
+  skipHelmVersionCheck: true
+  image:
+    repository: example/spring-boot
+tests:
+  - it: rejects entry with both value and secretKeyRef
+    set:
+      env:
+        BAD:
+          value: "foo"
+          secretKeyRef:
+            name: s
+            key: k
+    asserts:
+      - failedTemplate:
+          errorMessage: 'env entry "BAD" must have exactly one of: value, secretKeyRef, configMapKeyRef, fieldRef, resourceFieldRef (got: [value secretKeyRef])'
+
+  - it: rejects entry with empty map (none of value/valueFrom keys)
+    set:
+      env:
+        BAD: {}
+    asserts:
+      - failedTemplate:
+          errorMessage: 'env entry "BAD" must have exactly one of: value, secretKeyRef, configMapKeyRef, fieldRef, resourceFieldRef (got: [])'
+
+  - it: rejects secretKeyRef missing key field
+    set:
+      env:
+        BAD:
+          secretKeyRef:
+            name: s
+    asserts:
+      - failedTemplate:
+          errorMessage: 'env entry "BAD" secretKeyRef requires both ''name'' and ''key'''
+
+  - it: rejects null entry value
+    set:
+      env:
+        BAD: null
+    asserts:
+      - failedTemplate:
+          errorMessage: 'env entry "BAD" must not be null'
+
+  - it: rejects configMapKeyRef missing name field
+    set:
+      env:
+        BAD:
+          configMapKeyRef:
+            key: k
+    asserts:
+      - failedTemplate:
+          errorMessage: 'env entry "BAD" configMapKeyRef requires both ''name'' and ''key'''
+
+  - it: rejects fieldRef missing fieldPath
+    set:
+      env:
+        BAD:
+          fieldRef:
+            apiVersion: v1
+    asserts:
+      - failedTemplate:
+          errorMessage: 'env entry "BAD" fieldRef requires ''fieldPath'''

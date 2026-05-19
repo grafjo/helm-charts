@@ -1,0 +1,76 @@
+suite: probe port auto-switching follows customizedManagementServer
+templates:
+  - deployment.yaml
+release:
+  name: t
+  namespace: default
+set:
+  skipHelmVersionCheck: true
+  image:
+    repository: example/spring-boot
+tests:
+  - it: probes target http when customizedManagementServer is disabled
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.port
+          value: http
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.port
+          value: http
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.httpGet.port
+          value: http
+
+  - it: probes target http-management when customizedManagementServer is enabled
+    set:
+      customizedManagementServer:
+        enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.port
+          value: http-management
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.port
+          value: http-management
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.httpGet.port
+          value: http-management
+
+  - it: explicit probe port wins over auto-switch
+    set:
+      customizedManagementServer:
+        enabled: true
+      livenessProbe:
+        httpGet:
+          path: /actuator/health
+          port: 9090
+        initialDelaySeconds: 5
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.port
+          value: 9090
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.initialDelaySeconds
+          value: 5
+
+  - it: httpGet without port defaults to http
+    set:
+      livenessProbe:
+        httpGet:
+          path: /custom
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.port
+          value: http
+
+  - it: httpGet without port defaults to http-management when customizedManagementServer enabled
+    set:
+      customizedManagementServer:
+        enabled: true
+      livenessProbe:
+        httpGet:
+          path: /custom
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.port
+          value: http-management
